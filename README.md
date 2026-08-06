@@ -5,7 +5,7 @@
 ## 安装
 
 1. 复制本文件夹到 `ComfyUI/custom_nodes/`。
-2. 设置 API Key：环境变量 `MINIMAX_API_KEY`，或节点内 `api_key` 输入框。
+2. 注册登录 https://www.minimaxi.com/ 获取并设置 API Key：环境变量 `MINIMAX_API_KEY`，或节点内 `api_key` 输入框。
 3. 重启 ComfyUI。节点出现在 **MiniMax ContextIR** 分类。
 
 ## 模式
