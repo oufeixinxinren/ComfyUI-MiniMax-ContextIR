@@ -115,10 +115,12 @@ git clone https://github.com/oufeixinxinren/ComfyUI-MiniMax-ContextIR.git
 - 参考视频建议 48–360 帧（2–15 秒，24fps）。
 - 帧数按官方公式自动计算并对齐到 17n+5：
   `max(5, round(duration*fps)) + (5 - (max(5, round(duration*fps)) % 17)) % 17`。
-- `mode=fl2va` 时按已连接的关键帧自动映射：仅首帧 → i2va，仅末帧 → l2va，
-  首尾帧都有 → fl2va；接参考媒体会报错。
-- `mode=ref2va` 时首尾帧与参考媒体可同时输入（内部按 hybrid 处理），
-  但至少需要一路参考媒体。
+- 显式模式会屏蔽（忽略）不属于该模式的输入，而不是报错；只有缺失必需输入才报错：
+  - `mode=t2va`：忽略全部已连接媒体；
+  - `mode=fl2va`：忽略参考媒体，按已连接关键帧自动映射（仅首帧 → i2va，
+    仅末帧 → l2va，首尾帧都有 → fl2va；无任何关键帧 → 报错）。
+- `mode=ref2va` 时首尾帧与参考媒体可同时输入（内部按 hybrid 处理）；
+  未接任何参考媒体 → 报错。
 
 ---
 
@@ -183,7 +185,7 @@ git clone https://github.com/oufeixinxinren/ComfyUI-MiniMax-ContextIR.git
 | `input_string` | 外部文本输入端口；连接外部文本输出后优先作为消息输入（覆盖聊天窗口手输内容），方便自动化分段生成 |
 | `chat_history` / `request_id` | 由前端聊天窗口自动维护 |
 | `skill` | auto 或具体 Skill |
-| `prompt_mode` | 提示词生成模式：auto / T2VA / I2VA / FL2VA / L2VA / REF2VA；auto 时由模型根据已连接端口和需求自动判断，显式模式会校验端口一致性（REF2VA 允许带首/尾关键帧作为 `<Picture N>` 锚点，但需至少一个其他参考媒体） |
+| `prompt_mode` | 提示词生成模式：auto / T2VA / I2VA / FL2VA / L2VA / REF2VA；auto 时由模型根据已连接端口和需求自动判断；显式模式会屏蔽不属于该模式的媒体输入：T2VA 忽略全部媒体；I2VA / L2VA / FL2VA 忽略参考媒体（缺必需关键帧时报错）；REF2VA 允许首/尾关键帧与参考媒体并用（无任何参考媒体时报错） |
 | `api_base` / `api_key` / `model` | OpenAI 兼容 API 配置 |
 | `temperature` | 采样温度 |
 | `enable_thinking` / `reasoning_effort` | 是否请求模型思考（reasons），及思考强度（需模型/服务商支持） |

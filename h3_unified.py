@@ -239,6 +239,22 @@ def media_map_json(pictures: list[str], videos: list[str], audios: list[str]) ->
 # ---------------------------------------------------------------- task resolution
 
 def resolve_task_type(task_type: str, first_frame, last_frame, has_refs: bool) -> str:
+    """Resolve the effective MiniMax H3 task for the selected mode.
+
+    Explicit modes shield (ignore) inputs that do not belong to the mode
+    instead of raising, and raise only when a required input is missing:
+
+    - t2va  : first/last keyframes and reference media are all ignored
+    - i2va  : only first_frame is used (last_frame and refs ignored)
+    - l2va  : only last_frame is used (first_frame and refs ignored)
+    - fl2va : only keyframes are used (refs ignored)
+    - ref2va: keyframes + reference media are all effective
+
+    - t2va has no media requirement
+    - i2va / l2va require their keyframe
+    - fl2va requires at least one keyframe (maps to i2va / l2va / fl2va)
+    - ref2va requires at least one reference media (keyframes optional)
+    """
     first = first_frame is not None
     last = last_frame is not None
     requested = (task_type or "auto").lower()
@@ -255,41 +271,57 @@ def resolve_task_type(task_type: str, first_frame, last_frame, has_refs: bool) -
             return "l2va"
         return "t2va"
 
+    if requested == "t2va":
+        return "t2va"
     if requested == "fl2va":
-        if has_refs:
-            raise ValueError("FL2VA cannot include reference media; use REF2VA")
         if first and last:
             return "fl2va"
         if first:
             return "i2va"
         if last:
             return "l2va"
-        raise ValueError("FL2VA requires first_frame and/or last_frame")
+        raise ValueError(
+            "MiniMax H3 mode fl2va requires first_frame and/or last_frame; "
+            "connect at least one keyframe."
+        )
+    if requested == "i2va":
+        if not first:
+            raise ValueError("MiniMax H3 mode i2va requires first_frame.")
+        return "i2va"
+    if requested == "l2va":
+        if not last:
+            raise ValueError("MiniMax H3 mode l2va requires last_frame.")
+        return "l2va"
     if requested == "ref2va":
         if not has_refs:
-            raise ValueError("REF2VA requires at least one reference media input")
+            raise ValueError(
+                "MiniMax H3 mode ref2va requires at least one reference media "
+                "(ref_images / ref_videos / ref_video_audios / ref_audios)."
+            )
+        if first or last:
+            return "hybrid"
+        return "ref2va"
+    if requested == "hybrid":
+        if not has_refs:
+            raise ValueError(
+                "MiniMax H3 mode hybrid requires at least one reference media "
+                "(ref_images / ref_videos / ref_video_audios / ref_audios)."
+            )
         return "hybrid" if (first or last) else "ref2va"
+    raise ValueError(f"Unknown MiniMax H3 mode: {task_type}")
 
-    requirements = {
-        "t2va": (False, False, False),
-        "i2va": (True, False, False),
-        "l2va": (False, True, False),
-        "hybrid": (None, None, True),
-    }
-    if requested not in requirements:
-        raise ValueError(f"Unknown MiniMax H3 mode: {task_type}")
-    need_first, need_last, need_refs = requirements[requested]
-    if need_first is not None and first != need_first:
-        raise ValueError(f"{requested.upper()} first_frame connection does not match the selected mode")
-    if need_last is not None and last != need_last:
-        raise ValueError(f"{requested.upper()} last_frame connection does not match the selected mode")
-    if need_refs and not has_refs:
-        raise ValueError(f"{requested.upper()} requires at least one reference media input")
-    if requested == "hybrid" and not (first or last):
-        raise ValueError("HYBRID requires first_frame and/or last_frame")
-    if requested not in {"ref2va", "hybrid"} and has_refs:
-        raise ValueError(f"{requested.upper()} cannot include reference media; use Auto or REF2VA")
-    return requested
+
+def _mode_media_flags(resolved: str) -> tuple[bool, bool, bool]:
+    """(use_first, use_last, use_refs) for a resolved task."""
+    if resolved == "t2va":
+        return False, False, False
+    if resolved == "i2va":
+        return True, False, False
+    if resolved == "l2va":
+        return False, True, False
+    if resolved == "fl2va":
+        return True, True, False
+    return True, True, True  # ref2va / hybrid
 
 
 def assert_hybrid_layout_contract() -> None:
@@ -362,27 +394,45 @@ def build_unified_conditioning(
     ref_video_values = [value for _, value in ref_video_entries]
     ref_audio_values = sorted_autogrow_values(ref_audios)
     ref_video_audio_by_ordinal = dict(sorted_autogrow_items(ref_video_audios))
-    if len(ref_image_values) > 9 or len(ref_video_values) > 3 or len(ref_audio_values) > 3:
-        raise ValueError("MiniMax H3 reference limits are 9 pictures, 3 videos, and 3 standalone audios")
-    video_ordinals = {ordinal for ordinal, _ in ref_video_entries}
-    orphan_soundtracks = sorted(set(ref_video_audio_by_ordinal) - video_ordinals)
-    if orphan_soundtracks:
-        raise ValueError(
-            "Reference-video soundtrack(s) have no same-numbered video: "
-            + ", ".join(map(str, orphan_soundtracks))
+
+    has_refs_raw = bool(ref_image_values or ref_video_values or ref_audio_values)
+    resolved_task = resolve_task_type(task_type, first_frame, last_frame, has_refs_raw)
+    use_first, use_last, use_refs = _mode_media_flags(resolved_task)
+
+    ignored_inputs: list[str] = []
+    if not use_first and first_frame is not None:
+        ignored_inputs.append("first_frame")
+    if not use_last and last_frame is not None:
+        ignored_inputs.append("last_frame")
+    if not use_refs:
+        ignored_inputs.extend(
+            [f"ref_image_{index}" for index, value in enumerate(ref_image_values, 1) if value is not None]
+            + [f"ref_video_{index}" for index, (_, value) in enumerate(ref_video_entries, 1) if value is not None]
+            + [f"ref_audio_{index}" for index, value in enumerate(ref_audio_values, 1) if value is not None]
         )
+
+    if use_refs:
+        if len(ref_image_values) > 9 or len(ref_video_values) > 3 or len(ref_audio_values) > 3:
+            raise ValueError("MiniMax H3 reference limits are 9 pictures, 3 videos, and 3 standalone audios")
+        video_ordinals = {ordinal for ordinal, _ in ref_video_entries}
+        orphan_soundtracks = sorted(set(ref_video_audio_by_ordinal) - video_ordinals)
+        if orphan_soundtracks:
+            raise ValueError(
+                "Reference-video soundtrack(s) have no same-numbered video: "
+                + ", ".join(map(str, orphan_soundtracks))
+            )
 
     latent, frame_count = empty_av_latent(width, height, length)
 
     keyframes = []
     keyframe_images = []
     picture_labels: list[str] = []
-    if first_frame is not None:
+    if use_first and first_frame is not None:
         image = resize_image(first_frame[:1], width, height, "disabled")
         keyframe_images.append(image)
         picture_labels.append("first_frame (exact frame 0)")
         keyframes.append({"resolved_frame_index": 0, "latent": video_vae.encode(image)})
-    if last_frame is not None:
+    if use_last and last_frame is not None:
         image = resize_image(last_frame[:1], width, height, "center")
         keyframe_images.append(image)
         picture_labels.append(f"last_frame (exact frame {frame_count - 1})")
@@ -393,76 +443,75 @@ def build_unified_conditioning(
     video_labels: list[str] = []
     audio_labels: list[str] = []
 
-    for index, image in enumerate(ref_image_values, 1):
-        resized, ref_width, ref_height = _resize_reference_image(image, width, height, ref_image_size)
-        encoded = video_vae.encode(resized)
-        real_ref_items.append({"type": "image", "data": resized})
-        real_ref_blocks.append(
-            {
-                "kind": "image",
-                "latent_h": ref_height // 16,
-                "latent_w": ref_width // 16,
-                "latent": encoded,
-            }
-        )
-        picture_labels.append(f"ref_image_{index}")
+    if use_refs:
+        for index, image in enumerate(ref_image_values, 1):
+            resized, ref_width, ref_height = _resize_reference_image(image, width, height, ref_image_size)
+            encoded = video_vae.encode(resized)
+            real_ref_items.append({"type": "image", "data": resized})
+            real_ref_blocks.append(
+                {
+                    "kind": "image",
+                    "latent_h": ref_height // 16,
+                    "latent_w": ref_width // 16,
+                    "latent": encoded,
+                }
+            )
+            picture_labels.append(f"ref_image_{index}")
 
-    for index, (video_ordinal, frames) in enumerate(ref_video_entries, 1):
-        if frames.ndim != 4 or frames.shape[0] < 5:
-            raise ValueError(f"ref_video_{index} must contain at least 5 IMAGE frames")
-        source_height, source_width = int(frames.shape[1]), int(frames.shape[2])
-        canvas_width, canvas_height = adapt_canvas(source_width, source_height)
-        if source_width * source_height < canvas_width * canvas_height:
-            canvas_width = max(CANVAS_MULTIPLE, round(source_width / CANVAS_MULTIPLE) * CANVAS_MULTIPLE)
-            canvas_height = max(CANVAS_MULTIPLE, round(source_height / CANVAS_MULTIPLE) * CANVAS_MULTIPLE)
-        frames = resize_image(frames, canvas_width, canvas_height)
-        frames = frames[:frame_count]
-        aligned_count = align_frame_count_down(int(frames.shape[0]))
-        if aligned_count < 5:
-            raise ValueError(f"ref_video_{index} is too short after 17n+5 alignment")
-        frames = frames[:aligned_count]
-        encoded_video = video_vae.encode(frames)
+        for index, (video_ordinal, frames) in enumerate(ref_video_entries, 1):
+            if frames.ndim != 4 or frames.shape[0] < 5:
+                raise ValueError(f"ref_video_{index} must contain at least 5 IMAGE frames")
+            source_height, source_width = int(frames.shape[1]), int(frames.shape[2])
+            canvas_width, canvas_height = adapt_canvas(source_width, source_height)
+            if source_width * source_height < canvas_width * canvas_height:
+                canvas_width = max(CANVAS_MULTIPLE, round(source_width / CANVAS_MULTIPLE) * CANVAS_MULTIPLE)
+                canvas_height = max(CANVAS_MULTIPLE, round(source_height / CANVAS_MULTIPLE) * CANVAS_MULTIPLE)
+            frames = resize_image(frames, canvas_width, canvas_height)
+            frames = frames[:frame_count]
+            aligned_count = align_frame_count_down(int(frames.shape[0]))
+            if aligned_count < 5:
+                raise ValueError(f"ref_video_{index} is too short after 17n+5 alignment")
+            frames = frames[:aligned_count]
+            encoded_video = video_vae.encode(frames)
 
-        soundtrack = ref_video_audio_by_ordinal.get(video_ordinal)
-        encoded_soundtrack, soundtrack_t = None, 0
-        if soundtrack is not None:
+            soundtrack = ref_video_audio_by_ordinal.get(video_ordinal)
+            encoded_soundtrack, soundtrack_t = None, 0
+            if soundtrack is not None:
+                if audio_vae is None:
+                    raise ValueError("audio_vae is required when reference videos have soundtracks")
+                encoded_soundtrack, soundtrack_t = _encode_reference_audio(audio_vae, soundtrack)
+                # soundtrack gets its own <Audio j> label, emitted before <Video k>
+                real_ref_items.append({"type": "audio"})
+                audio_labels.append(f"ref_video_audio_{video_ordinal}")
+            sample_indices = list(range(0, frames.shape[0], FPS // 2))
+            real_ref_items.append(
+                {
+                    "type": "video",
+                    "data": frames[sample_indices],
+                    "timestamps": [sample_index / FPS for sample_index in sample_indices],
+                }
+            )
+            real_ref_blocks.append(
+                {
+                    "kind": "video_audio" if soundtrack_t else "video",
+                    "latent_t": int(encoded_video.shape[2]),
+                    "latent_h": canvas_height // 16,
+                    "latent_w": canvas_width // 16,
+                    "ref_audio_t": soundtrack_t,
+                    "latent": encoded_video,
+                    "audio_latent": encoded_soundtrack,
+                }
+            )
+            video_labels.append(f"ref_video_{video_ordinal}")
+
+        for index, audio in enumerate(ref_audio_values, 1):
             if audio_vae is None:
-                raise ValueError("audio_vae is required when reference videos have soundtracks")
-            encoded_soundtrack, soundtrack_t = _encode_reference_audio(audio_vae, soundtrack)
-            # soundtrack gets its own <Audio j> label, emitted before <Video k>
+                raise ValueError("audio_vae is required when reference audio is connected")
+            encoded_audio, audio_t = _encode_reference_audio(audio_vae, audio)
             real_ref_items.append({"type": "audio"})
-            audio_labels.append(f"ref_video_audio_{video_ordinal}")
-        sample_indices = list(range(0, frames.shape[0], FPS // 2))
-        real_ref_items.append(
-            {
-                "type": "video",
-                "data": frames[sample_indices],
-                "timestamps": [sample_index / FPS for sample_index in sample_indices],
-            }
-        )
-        real_ref_blocks.append(
-            {
-                "kind": "video_audio" if soundtrack_t else "video",
-                "latent_t": int(encoded_video.shape[2]),
-                "latent_h": canvas_height // 16,
-                "latent_w": canvas_width // 16,
-                "ref_audio_t": soundtrack_t,
-                "latent": encoded_video,
-                "audio_latent": encoded_soundtrack,
-            }
-        )
-        video_labels.append(f"ref_video_{video_ordinal}")
+            real_ref_blocks.append({"kind": "audio", "ref_audio_t": audio_t, "audio_latent": encoded_audio})
+            audio_labels.append(f"ref_audio_{index}")
 
-    for index, audio in enumerate(ref_audio_values, 1):
-        if audio_vae is None:
-            raise ValueError("audio_vae is required when reference audio is connected")
-        encoded_audio, audio_t = _encode_reference_audio(audio_vae, audio)
-        real_ref_items.append({"type": "audio"})
-        real_ref_blocks.append({"kind": "audio", "ref_audio_t": audio_t, "audio_latent": encoded_audio})
-        audio_labels.append(f"ref_audio_{index}")
-
-    has_refs = bool(real_ref_blocks)
-    resolved_task = resolve_task_type(task_type, first_frame, last_frame, has_refs)
     counts = {"pictures": len(picture_labels), "videos": len(video_labels), "audios": len(audio_labels)}
     conditioned_prompt, prompt_warnings = prepare_prompt(
         prompt,
@@ -499,6 +548,8 @@ def build_unified_conditioning(
         f"frames={frame_count} ({frame_count / FPS:.3f}s at 24fps)",
         f"pictures={len(picture_labels)}, videos={len(video_labels)}, audios={len(audio_labels)}",
     ]
+    if ignored_inputs:
+        report_lines.append("ignored_inputs=" + ",".join(ignored_inputs))
     report_lines.extend(f"warning: {warning}" for warning in prompt_warnings)
     return conditioning, latent, conditioned_prompt, media_map, "\n".join(report_lines)
 
@@ -524,7 +575,7 @@ class MiniMaxH3UnifiedToVideo(io.ComfyNode):
                 io.Vae.Input("audio_vae", optional=True, tooltip="Required only for reference audio / video soundtracks."),
                 io.String.Input("prompt", multiline=True, dynamic_prompts=True),
                 io.Combo.Input("mode", options=["auto", "t2va", "fl2va", "ref2va"], default="auto",
-                               tooltip="auto detects the task from connected inputs. fl2va maps to i2va/l2va/fl2va by the connected keyframes. ref2va allows keyframes and reference media together."),
+                               tooltip="auto detects the task from connected inputs. Explicit modes ignore extra inputs and raise only when a required input is missing: t2va ignores all media; fl2va requires at least one keyframe (maps to i2va/l2va/fl2va) and ignores references; ref2va requires at least one reference and uses keyframes + references together."),
                 io.Int.Input("width", default=1344, min=32, max=16384, step=32),
                 io.Int.Input("height", default=768, min=32, max=16384, step=32),
                 io.Float.Input("duration", default=5.0, min=1, max=15, step=0.01,

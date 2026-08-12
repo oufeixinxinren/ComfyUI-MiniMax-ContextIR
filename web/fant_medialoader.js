@@ -1052,7 +1052,7 @@ class TrimModal {
       onclick: () => {
         this.cropMode = !this.cropMode;
         if (this.cropMode && !this.crop)
-          this.crop = { x: 0.125, y: 0.125, w: 0.75, h: 0.75 };
+          this.crop = { x: 0, y: 0, w: 1, h: 1 };
         if (!this.cropMode && this.crop &&
             this.crop.w > 0.995 && this.crop.h > 0.995) this.crop = null;
         if (!this.cropMode) this.seek(this.media?.currentTime || 0, false);
@@ -1290,7 +1290,7 @@ class ImageCropModal {
   constructor(panel, item) {
     this.panel = panel;
     this.item = item;
-    this.crop = item.crop ? { ...item.crop } : { x: 0.125, y: 0.125, w: 0.75, h: 0.75 };
+    this.crop = item.crop ? { ...item.crop } : { x: 0, y: 0, w: 1, h: 1 };
     this.aspect = "free";
     this.drag = null;
     this.naturalW = 0;
@@ -1421,8 +1421,9 @@ class ImageCropModal {
           el("button", { class: "mml-btn mml-sm",
             title: "Reset the crop",
             onclick: () => {
-              this.crop = { x: 0.125, y: 0.125, w: 0.75, h: 0.75 };
+              this.crop = { x: 0, y: 0, w: 1, h: 1 };
               this.aspect = "free";
+              this.aspectEl.value = "free";
               this.syncCrop();
             } }, "\u21ba Reset"),
           el("button", { class: "mml-btn mml-sm primary",

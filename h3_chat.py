@@ -222,6 +222,7 @@ def _mode_instruction(prompt_mode: str, media_summary: str) -> str:
             "- L2VA：尾帧生视频（使用 last_frame）；\n"
             "- FL2VA：首尾帧生视频（同时使用 first_frame 与 last_frame）；\n"
             "- REF2VA：仅参考媒体生视频（ref_image/ref_video/ref_audio）；\n"
+            "注意：ref_video_audio 只是同编号 ref_video 的音轨，单独连接不算参考媒体；\n"
             "输出与该类型匹配的 H3 提示词结构，并用 <Picture i> / <Video k> / <Audio j> 标签引用可用媒体。"
         )
     descriptions = {
@@ -248,30 +249,88 @@ def _duration_instruction(duration: float) -> str:
     )
 
 
-def _validate_prompt_mode(prompt_mode: str, media: dict) -> None:
+def _apply_prompt_mode(prompt_mode: str, media: dict) -> tuple[str, dict]:
+    """Apply an explicit prompt mode by shielding (ignoring) foreign inputs.
+
+    Returns ``(effective_mode, effective_media)``. Inputs that do not belong to
+    the selected mode are dropped instead of raising, so connected media that
+    is not used simply has no effect. Explicit modes raise only when a required
+    input is missing:
+
+    - T2VA  : all media ignored (no media requirement)
+    - I2VA  : only first_frame is used (requires first_frame)
+    - L2VA  : only last_frame is used (requires last_frame)
+    - FL2VA : only first/last keyframes are used, refs ignored
+              (requires at least one keyframe)
+    - REF2VA: keyframes + references are all used (requires at least one
+              reference media)
+    """
     mode = (prompt_mode or "auto").upper()
     if mode == "AUTO":
-        return
+        return mode, media
     has_first = "first_frame" in media
     has_last = "last_frame" in media
-    has_refs = any(t.startswith("ref_") for t in media)
-    if mode == "T2VA" and (has_first or has_last or has_refs):
-        raise ValueError("T2VA 模式要求不连接任何媒体端口。")
-    if mode == "I2VA" and (not has_first or has_last or has_refs):
-        raise ValueError("I2VA 模式需要连接 first_frame，且不能连接 last_frame 或参考媒体。")
-    if mode == "L2VA" and (not has_last or has_first or has_refs):
-        raise ValueError("L2VA 模式需要连接 last_frame，且不能连接 first_frame 或参考媒体。")
-    if mode == "FL2VA" and (not has_first or not has_last or has_refs):
-        raise ValueError("FL2VA 模式需要同时连接 first_frame 和 last_frame，且不能连接参考媒体。")
-    if mode == "REF2VA" and not has_refs:
-        raise ValueError("REF2VA 模式需要至少一个参考媒体（ref_image / ref_video / ref_audio）。")
+    has_refs = _has_reference_media(media)
+
+    def keep(*tokens: str) -> dict:
+        return {key: value for key, value in media.items() if key in tokens}
+
+    if mode == "T2VA":
+        return mode, {}
+    if mode == "I2VA":
+        if not has_first:
+            raise ValueError("Prompt mode I2VA requires first_frame.")
+        return mode, keep("first_frame")
+    if mode == "L2VA":
+        if not has_last:
+            raise ValueError("Prompt mode L2VA requires last_frame.")
+        return mode, keep("last_frame")
+    if mode == "FL2VA":
+        if not (has_first or has_last):
+            raise ValueError("Prompt mode FL2VA requires first_frame and/or last_frame.")
+        return mode, keep("first_frame", "last_frame")
+    if mode == "REF2VA":
+        if not has_refs:
+            raise ValueError(
+                "Prompt mode REF2VA requires at least one reference media "
+                "(ref_images / ref_videos / ref_video_audios / ref_audios)."
+            )
+        return mode, media
+    raise ValueError(f"Unknown MiniMax H3 prompt mode: {prompt_mode}")
+
+
+def _has_reference_media(media: dict) -> bool:
+    """True when a real reference media is connected.
+
+    Matches the official node semantics: ref_video_audio_N is only a reference
+    when the same-numbered ref_video_N is also connected; a standalone
+    soundtrack alone does not count as a reference.
+    """
+    for token in media:
+        if token.startswith("ref_image_") or token.startswith("ref_audio_"):
+            return True
+        if token.startswith("ref_video_audio_"):
+            ordinal = token[len("ref_video_audio_"):]
+            if f"ref_video_{ordinal}" in media:
+                return True
+            continue
+        if token.startswith("ref_video_"):
+            return True
+    return False
+
+
+def _strip_tokens(text: str, tokens: list[str]) -> str:
+    """Remove @-mentions for tokens that were shielded by the selected mode."""
+    for token in tokens:
+        text = re.sub(rf"@{re.escape(token)}\b", "", text)
+    return re.sub(r"[ \t]{2,}", " ", text).strip()
 
 
 def _infer_mode_from_media(media: dict) -> str:
     """Deterministic auto-mode mapping, matching the Unified node's auto logic."""
     has_first = "first_frame" in media
     has_last = "last_frame" in media
-    has_refs = any(token.startswith("ref_") for token in media)
+    has_refs = _has_reference_media(media)
     if has_refs:
         return "REF2VA"
     if has_first and has_last:
@@ -293,7 +352,8 @@ def _build_system_text(skill: dict | None, loaded_references: list[str] | None =
     parts.append(_mode_instruction(prompt_mode, _media_summary(media or {})))
     if (prompt_mode or "auto").upper() == "AUTO":
         parts.append(
-            "自动模式规则（必须遵守）：已连接任何 ref_ 系列端口 → 使用 REF2VA 结构；"
+            "自动模式规则（必须遵守）：已连接参考媒体（ref_image / ref_video / ref_audio；"
+            "ref_video_audio 需与同编号 ref_video 同时连接才算）→ 使用 REF2VA 结构；"
             "仅连接 first_frame+last_frame → FL2VA；仅 first_frame → I2VA；"
             "仅 last_frame → L2VA；无媒体 → T2VA。直接输出最终 H3 提示词正文，"
             "不要解释，不要输出模式名称，不要输出与提示词无关的内容。"
@@ -434,9 +494,15 @@ class MiniMaxH3MultimodalChat(io.ComfyNode):
         media = collect_media_inputs(
             first_frame, last_frame, ref_images, ref_videos, ref_video_audios, ref_audios
         )
+        full_media = media
+        effective_mode, media = _apply_prompt_mode(prompt_mode, media)
         effective_skill = skill
         label_map = build_label_map(media)
         tokens = referenced_tokens(user_text)
+        shielded_tokens = [token for token in tokens if token in full_media and token not in media]
+        if shielded_tokens:
+            user_text = _strip_tokens(user_text, shielded_tokens)
+            tokens = referenced_tokens(user_text)
         for token in tokens:
             if token not in media:
                 raise ValueError(
@@ -445,7 +511,9 @@ class MiniMaxH3MultimodalChat(io.ComfyNode):
         prompt_text = render_prompt_text(user_text, label_map)
         input_source = "input_string" if (input_string or "").strip() else ("prompt" if (prompt or "").strip() else "none")
         report_lines = [f"input_source={input_source}", f"media={len(media)}",
-                        f"tokens={len(tokens)}", f"seed={seed_value}"]
+                        f"tokens={len(tokens)}", f"seed={seed_value}", f"mode={effective_mode}"]
+        if len(full_media) > len(media):
+            report_lines.append(f"ignored_media={len(full_media) - len(media)}")
 
         if not user_text:
             last_assistant = next(
@@ -466,7 +534,6 @@ class MiniMaxH3MultimodalChat(io.ComfyNode):
             }
             return io.NodeOutput(reply, prompt_text, history_json, report, ui=ui)
 
-        _validate_prompt_mode(prompt_mode, media)
         skill_to_use = None
         if effective_skill != AUTO and effective_skill:
             skill_to_use = resolve_skill(effective_skill)
@@ -502,7 +569,7 @@ class MiniMaxH3MultimodalChat(io.ComfyNode):
                 report_lines.append("auto_references=True")
             for attempt in range(2):
                 system_text = _build_system_text(
-                    skill_to_use, loaded_references, prompt_mode, media, duration
+                    skill_to_use, loaded_references, effective_mode, media, duration
                 )
                 messages = []
                 if system_text:
@@ -537,7 +604,7 @@ class MiniMaxH3MultimodalChat(io.ComfyNode):
             report_lines.append(f"final={bool(skill_state['final'])}")
             report_lines.append(f"loaded_references={len(loaded_references)}")
         else:
-            system_text = _build_system_text(None, [], prompt_mode, media, duration)
+            system_text = _build_system_text(None, [], effective_mode, media, duration)
             messages = []
             if system_text:
                 messages.append({"role": "system", "content": system_text})
