@@ -13,6 +13,7 @@ from __future__ import annotations
 import base64
 import io as _io
 import json
+import math
 import mimetypes
 import os
 import tempfile
@@ -246,10 +247,13 @@ def _build_content_by_mode(
                 }
             )
     elif mode == "r2va":
-        if kf_present:
+        if not ref_present:
             raise ValueError(
-                "r2va mode does not accept first/last frames; use i2va for keyframes."
+                "R2VA requires at least one reference media input; "
+                "first/last frames alone should use I2VA."
             )
+        # Keyframes connected in the fused node stay local-only anchors:
+        # the official r2va API request carries reference media only.
         for i in range(9):
             img = (ref_images or {}).get(f"ref_image_{i}")
             if img is not None:
@@ -323,7 +327,7 @@ class MiniMaxH3ContextIR(io.ComfyNode):
                     "mode", options=["t2va", "i2va", "r2va"], default="t2va"
                 ),
                 io.String.Input("text", multiline=True, default=""),
-                io.Int.Input("duration", default=5, min=4, max=15),
+                io.Float.Input("duration", default=5.0, min=1, max=15, step=0.01),
                 io.Combo.Input(
                     "ratio",
                     options=["adaptive", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
@@ -335,9 +339,9 @@ class MiniMaxH3ContextIR(io.ComfyNode):
                     "ref_images",
                     optional=True,
                     template=io.Autogrow.TemplatePrefix(
-                        input=io.Image.Input("ref_image", optional=True),
+                        input=io.Image.Input("ref_image", tooltip="Reference image (downscaled to 2048 short edge if larger, never upscaled)"),
                         prefix="ref_image_",
-                        min=4,
+                        min=0,
                         max=9,
                     ),
                 ),
@@ -345,9 +349,9 @@ class MiniMaxH3ContextIR(io.ComfyNode):
                     "ref_videos",
                     optional=True,
                     template=io.Autogrow.TemplatePrefix(
-                        input=io.Image.Input("ref_video", optional=True),
+                        input=io.Image.Input("ref_video", tooltip="Reference video frames at 24 fps (2-15s)"),
                         prefix="ref_video_",
-                        min=1,
+                        min=0,
                         max=3,
                     ),
                 ),
@@ -355,9 +359,9 @@ class MiniMaxH3ContextIR(io.ComfyNode):
                     "ref_video_audios",
                     optional=True,
                     template=io.Autogrow.TemplatePrefix(
-                        input=io.Audio.Input("ref_video_audio", optional=True),
+                        input=io.Audio.Input("ref_video_audio", tooltip="Soundtrack of the same-numbered reference video"),
                         prefix="ref_video_audio_",
-                        min=1,
+                        min=0,
                         max=3,
                     ),
                 ),
@@ -365,9 +369,9 @@ class MiniMaxH3ContextIR(io.ComfyNode):
                     "ref_audios",
                     optional=True,
                     template=io.Autogrow.TemplatePrefix(
-                        input=io.Audio.Input("ref_audio", optional=True),
+                        input=io.Audio.Input("ref_audio", tooltip="Standalone reference audio"),
                         prefix="ref_audio_",
-                        min=1,
+                        min=0,
                         max=3,
                     ),
                 ),
@@ -413,7 +417,7 @@ class MiniMaxH3ContextIR(io.ComfyNode):
         payload: dict = {
             "model": "MiniMax-H3",
             "content": content,
-            "duration": int(duration),
+            "duration": int(min(15, max(1, math.floor(float(duration) + 0.5)))),
             "ratio": ratio,
         }
         if callback_url.strip():
