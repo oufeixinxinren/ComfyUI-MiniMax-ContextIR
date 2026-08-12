@@ -15,14 +15,14 @@ H3-Context-IR 云端 API 自动把普通提示词优化成结构化 H3 提示词
   OpenAI 兼容多模态 LLM API、通过 @ 引用 H3 媒体输入，并支持自动化外部文本输入。
 - **MiniMax H3 Audio Lock**：把参考音频锁进 AV latent，成片音频 100% 保持源音频
   （对口型 / 音乐 MV 场景必备）。
-- **MiniMax H3 Media Loader (Fant)**：复刻 Fantastic MiniMaxH3 PromptBuilder 的
+- **MiniMax H3 Media Loader (Fant)**：参考 Fantastic MiniMaxH3 PromptBuilder 并修改优化的
   媒体加载器（拖拽上传、预览、排序、音轨拆分、裁剪/抽帧、中英双语界面、预设），
   输出 `references` 素材包。
 - **MiniMax H3 Reference Splitter**：把 `references` 素材包拆成独立的图/视频/音频槽位。
 - **MiniMax H3 Resolution Selector**：宽高比 + 官方“宽×高”预设 → H3 宽高；
   切换比例时“宽×高”选项自动跟随（原生 DynamicCombo）。
 - **MiniMax H3 Concat AV Latent**：把独立的视频/音频 latent 合并成 H3 采样器所需的
-  联合 NestedTensor AV latent（复刻 PT_H3ConcatAVLatent，用于已有视频的二次重绘/放大采样）。
+  联合 NestedTensor AV latent（参考 PT_H3ConcatAVLatent，主要用于视频的二次采样放大）。
 
 ## 特性
 
@@ -258,9 +258,9 @@ Unified/Context IR 节点
 
 ## 节点 5/6：MiniMax H3 Media Loader (Fant) + Reference Splitter
 
-完全复刻 [ComfyUI-Fantastic-MiniMaxH3-PromptBuilder](https://github.com/Adudeguyman/ComfyUI-Fantastic-MiniMaxH3-PromptBuilder)
-的媒体加载器（MIT License，Copyright (c) 2026 Adudeguyman）。复刻版节点 id 为
-`MiniMaxH3MediaLoaderFantastic`，界面与行为与原版一致：
+参考并重构自 [ComfyUI-Fantastic-MiniMaxH3-PromptBuilder](https://github.com/Adudeguyman/ComfyUI-Fantastic-MiniMaxH3-PromptBuilder)
+的媒体加载器（MIT License，Copyright (c) 2026 Adudeguyman）。节点 id 为
+`MiniMaxH3MediaLoaderFantastic`，在保留原版媒体加载核心能力的基础上进行了修改与优化：
 
 - 拖拽 / 文件选择上传图片、视频、音频，缩略图与播放预览；
 - 拖动素材直接交换顺序（无排序按钮）、启停、移除；视频音轨可“配对”或“独立”拆分；
@@ -277,7 +277,7 @@ Unified/Context IR 节点
   `picture_1–9`、`video_1–3`、`video_audio_1–3`、`audio_1–3` 独立槽位，
   再接入官方的 Reference to Video 或本插件的 Unified 节点。
 
-复刻版不包含原插件的 Prompt Builder / 提示词库；需要提示词编辑请安装原插件。
+本节点不包含原插件的 Prompt Builder / 提示词库；需要提示词编辑请安装原插件。
 
 ### HTTP 接口
 
@@ -308,13 +308,15 @@ Unified/Context IR 节点
 
 ## 节点 8：MiniMax H3 Concat AV Latent
 
-复刻自 ComfyUI-PT_H3ConcatAVLatent 的 `PT_H3ConcatAVLatent`，转换为插件的新 API
-注册（节点 id `MiniMaxH3ConcatAVLatent`，与原插件可共存）。
+参考自 ComfyUI-PT_H3ConcatAVLatent 的 `PT_H3ConcatAVLatent`，转换为插件的新 API
+注册（节点 id `MiniMaxH3ConcatAVLatent`，与原插件可共存）。该节点主要用于
+**视频的二次采样放大**：把已生成的视频/音频重新编码成 latent，合并后以更高分辨率
+或更低步数再次采样（放大 / 重绘）。
 
 - `video_latent`：视频 latent，形状 `[B, 24, T, H/16, W/16]`
 - `audio_latent`：音频 latent，形状 `[B, 32, 2, T_audio]`
 - 输出 `av_latent`：合并后的联合 `NestedTensor`，直接接 H3 采样器的 latent 输入，
-  用于对已有视频进行权重重绘。
+  实现二次采样放大 / 重绘。
 
 ---
 
