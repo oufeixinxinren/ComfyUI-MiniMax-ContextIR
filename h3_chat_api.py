@@ -493,7 +493,8 @@ def strip_think_blocks(text: str) -> str:
 
 _PROMPT_PREFIX_FILLER = re.compile(
     r"^(好的|好的，|当然|当然可以|没问题|可以|为您|为你|以下是|下面是|这是|生成结果|"
-    r"提示词如下|需要的提示词|提示词|请使用|prompt|Prompt)[：:，,]?\s*$",
+    r"提示词如下|需要的提示词|提示词|请使用|prompt|Prompt|Here is|Here's|Sure|"
+    r"Certainly|Of course|The prompt is)[：:，,]?\s*$",
     re.IGNORECASE,
 )
 _PROMPT_TRAILING_FILLER = re.compile(
@@ -502,16 +503,39 @@ _PROMPT_TRAILING_FILLER = re.compile(
     re.IGNORECASE,
 )
 
+_H3_SECTION_HEADER = re.compile(
+    r"(?:subject_definitions|integrated_multimodal_description|summary|"
+    r"retention_analysis|detailed_description|overall_soundscape|"
+    r"non_diegetic_music|shot_plan|storyboard)\s*[:：]",
+    re.IGNORECASE,
+)
+
 
 def extract_prompt_from_reply(reply: str) -> str:
     """Extract the H3 prompt from an assistant reply, removing conversational filler."""
     if not reply or not reply.strip():
         return ""
-    text = reply.strip()
+    text = re.sub(
+        r"<mmx_skill_state>\s*\{.*?\}\s*</mmx_skill_state>", "", reply, flags=re.DOTALL
+    ).strip()
     # 1) fenced code block is the most reliable marker
     fence = re.search(r"```[^\n`]*\n([\s\S]*?)```", text)
     if fence:
         return fence.group(1).strip()
+    # 1b) structured H3 prompt: cut everything before the first section header,
+    #     so conversational chatter in front of the prompt never leaks through.
+    headers = list(_H3_SECTION_HEADER.finditer(text))
+    if headers:
+        pick = next(
+            (m for m in headers if m.start() == 0 or text[m.start() - 1] == "\n"), None
+        )
+        if pick is None:
+            pick = next(
+                (m for m in headers if m.start() > 0 and text[m.start() - 1] in ":："), None
+            )
+        if pick is None:
+            pick = headers[0]
+        text = text[pick.start():].lstrip("\n ")
     # 2) remove leading filler lines ("您需要的提示词如下：" etc.)
     lines = text.splitlines()
     while lines:
@@ -523,8 +547,9 @@ def extract_prompt_from_reply(reply: str) -> str:
             lines.pop(0)
             continue
         if len(stripped) <= 24 and (stripped.endswith("：") or stripped.endswith(":") or stripped.endswith("如下")):
-            lines.pop(0)
-            continue
+            if not _H3_SECTION_HEADER.match(stripped):
+                lines.pop(0)
+                continue
         break
     # 3) remove trailing filler lines
     while lines:
