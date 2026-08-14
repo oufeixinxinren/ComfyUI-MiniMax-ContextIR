@@ -17,7 +17,6 @@ from .h3_context_ir import _audio_to_data_url, _image_to_data_url
 # ---------------------------------------------------------------- skills
 
 _PLUGIN_DIR = os.path.dirname(os.path.realpath(__file__))
-_LLAMA_TE_SKILLS = os.path.normpath(os.path.join(_PLUGIN_DIR, "..", "comfyUI-llama-TE", "skills"))
 
 
 def _read_text(path: str) -> str:
@@ -104,27 +103,9 @@ def _discover_in(skill_root: str) -> list[dict]:
 
 
 def discover_skills() -> list[dict]:
-    roots = [os.path.join(_PLUGIN_DIR, "skills")]
-    candidates = [_LLAMA_TE_SKILLS]
-    try:
-        import folder_paths
-
-        for base in folder_paths.get_folder_paths("custom_nodes"):
-            candidates.append(os.path.join(base, "comfyUI-llama-TE", "skills"))
-    except Exception:  # noqa: BLE001 - fall back to relative paths
-        pass
-    for candidate in candidates:
-        if os.path.isdir(candidate):
-            roots.append(candidate)
-    seen: set[str] = set()
-    skills = []
-    for root in roots:
-        for skill in _discover_in(root):
-            if skill["id"] in seen:
-                continue
-            seen.add(skill["id"])
-            skills.append(skill)
-    return sorted(skills, key=lambda item: item["label"])
+    """Discover skills bundled in this plugin's own skills/ directory only."""
+    root = os.path.join(_PLUGIN_DIR, "skills")
+    return sorted(_discover_in(root), key=lambda item: item["label"])
 
 
 def find_skill(skill_id: str) -> dict | None:

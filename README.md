@@ -156,12 +156,12 @@ git clone https://github.com/oufeixinxinren/ComfyUI-MiniMax-ContextIR.git
 
 ## 节点 3：MiniMax H3 Multimodal Chat
 
-多轮对话节点，参照 `comfyUI-llama-TE` 的聊天交互实现：
+多轮对话节点，支持 Skill 加载与外部多模态 API：
 
 - **Skill 加载**：直接在节点的 `skill` 下拉框选择即可生效（自动发现本插件 `skills/`
-  和 `custom_nodes/comfyUI-llama-TE/skills` 下的 Codex 风格 Skill；
+  下的 Codex 风格 Skill，已内置官方 `h3-prompt-writing`；
   `skill=auto` 时由外部 LLM 根据首个任务自动选择）。选择后 Skill 内容会注入系统提示词，
-  并启用与 llama-TE 一致的执行协议：模型按阶段推进、可请求按需加载 references、
+  并启用阶段式执行协议：模型按阶段推进、可请求按需加载 references、
   通过 `<mmx_skill_state>` 状态标记返回阶段/选项/final。
 - **外部多模态 API**：任意 OpenAI 兼容的 `/chat/completions` 接口
   （`api_base` + `api_key` + `model`）。
@@ -174,7 +174,7 @@ git clone https://github.com/oufeixinxinren/ComfyUI-MiniMax-ContextIR.git
 - **仅输出提示词**：`prompt_only` 开启时不调用 API，直接输出组装好的提示词文本。
 - **多对话管理**：左侧“最近聊天”栏支持新建、切换、删除对话（上限 20 个），
   支持“清空全部”；**双击会话按钮可重命名**；对话列表随工作流保存，重启后仍可继续。
-- **Skill 状态可见**：聊天区顶部显示当前 Skill 与阶段（同 llama-TE 的流程条），
+- **Skill 状态可见**：聊天区顶部显示当前 Skill 与阶段（流程条），
   首轮加载后显示“已加载”。
 
 ### 输入

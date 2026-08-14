@@ -3,11 +3,16 @@
 把 Codex 风格的 Skill（`SKILL.md` / `SKILL.cn.md`，可选 `meta.yaml` 和 `references/`）放到这里，
 `MiniMax H3 Multimodal Chat` 节点即可在 `skill` 下拉框中加载。
 
-本插件已内置官方 `h3-prompt-writing` skill：
+节点只扫描本目录，不再读取其他插件（如 `comfyUI-llama-TE`）的 skills 目录。
 
-- `h3-prompt-writing/SKILL.md` — MiniMax H3 视频提示词编写工作流
-- `h3-prompt-writing/references/base-en.txt` — 文生视频 / 关键帧模式官方指南
-- `h3-prompt-writing/references/ref-en.txt` — 全参考（Ref2VA）重写官方指南
-- `h3-prompt-writing/meta.yaml` 与 `agents/openai.yaml` — 节点显示与接口配置
+本插件已内置以下 Skill：
 
-插件同时会自动发现 `custom_nodes/comfyUI-llama-TE/skills` 下的 Skill。
+- `h3-prompt-writing` — MiniMax H3 视频提示词编写（含官方 `base-en.txt` / `ref-en.txt` 指南）
+- `3d-animation-short-generator` — 3D 动画短片生成
+- `brand-promo-video-generator` — 品牌宣传视频生成
+- `co-op-game-intro-generator` — 双人合作游戏开场动画
+- `handdrawn-live-video-generator` — 手绘风格实拍短视频
+- `minimalist-product-ad-generator` — 极简产品广告短视频
+- `mv-subtitle-skill-confirmed` — MV 歌词字幕设计
+- `paper-collage-explainer-generator` — 拼贴风解说视频
+- `papercraft-stop-motion-explainer` — 纸艺科普 / 解说视频

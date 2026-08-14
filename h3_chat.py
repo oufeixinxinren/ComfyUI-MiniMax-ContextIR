@@ -2,7 +2,7 @@
 
 Features:
 - loads Codex-style skills (SKILL.md / SKILL.cn.md) from this plugin's skills/
-  directory and from comfyUI-llama-TE/skills if installed
+  directory
 - calls any OpenAI-compatible multimodal chat completions API
 - H3 media input ports (first/last frame, reference images/videos/audio)
 - click a connected media chip or type @-mention in the message window to reference media,
