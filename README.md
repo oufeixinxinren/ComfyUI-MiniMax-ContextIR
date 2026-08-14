@@ -1,3 +1,8 @@
+
+## 使用教程
+
+（B 站）：https://space.bilibili.com/176339505
+
 # ComfyUI-MiniMax-ContextIR
 
 MiniMax H3 视频生成全家桶：一个 ComfyUI 插件，八个节点，覆盖
@@ -328,7 +333,3 @@ Unified/Context IR 节点
   实现二次采样放大 / 重绘。
 
 ---
-
-## 使用教程
-
-更多使用教程（B 站）：https://space.bilibili.com/176339505
