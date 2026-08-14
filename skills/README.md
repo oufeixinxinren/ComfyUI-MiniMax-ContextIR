@@ -1,7 +1,7 @@
 # Skills
 
-本目录只存放从 `comfyUI-llama-TE/skills` 内置进来的 Skill（共 9 个），
-`MiniMax H3 Multimodal Chat` 节点只扫描本目录，不再读取其他插件（如 `comfyUI-llama-TE`）的 skills 目录。
+本目录存放内置的 MiniMax 官方 Skill（共 9 个），
+`MiniMax H3 Multimodal Chat` 节点只扫描本目录。
 
 内置 Skill 列表：
 

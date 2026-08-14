@@ -1,7 +1,7 @@
 """MiniMax H3 Multimodal Chat - skill loader + external multimodal LLM chat node.
 
 Features:
-- loads the bundled llama-TE skills from this plugin's skills/ directory
+- loads the bundled MiniMax official skills from this plugin's skills/ directory
 - calls any OpenAI-compatible multimodal chat completions API
 - H3 media input ports (first/last frame, reference images/videos/audio)
 - click a connected media chip or type @-mention in the message window to reference media,
@@ -380,7 +380,7 @@ class MiniMaxH3MultimodalChat(io.ComfyNode):
             node_id="MiniMaxH3MultimodalChat",
             display_name="MiniMax H3 Multimodal Chat",
             description=(
-                "Multi-turn chat with bundled llama-TE skill loading and any OpenAI-compatible "
+                "Multi-turn chat with bundled MiniMax official skill loading and any OpenAI-compatible "
                 "multimodal API. Click a connected media chip in the message window (or type "
                 "@tokens such as @first_frame / @last_frame / @ref_image_N / @ref_video_N / "
                 "@ref_video_audio_N / @ref_audio_N) to reference connected H3 media."
