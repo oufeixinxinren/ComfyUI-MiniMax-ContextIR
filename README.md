@@ -11,7 +11,7 @@ H3-Context-IR 云端 API 自动把普通提示词优化成结构化 H3 提示词
   Reference to Video，支持 t2va / i2va / fl2va / l2va / ref2va / hybrid，自动识别任务类型）。
 - **MiniMax H3 Context IR**：独立调用 H3-Context-IR API，把普通提示词 + 媒体优化成
   结构化 H3 提示词（t2va / i2va / r2va），输出字符串。
-- **MiniMax H3 Multimodal Chat**：多轮对话节点，可加载 Codex 风格 Skill、调用任意
+- **MiniMax H3 Multimodal Chat**：多轮对话节点，可加载内置的 llama-TE Skill、调用任意
   OpenAI 兼容多模态 LLM API、通过 @ 引用 H3 媒体输入，并支持自动化外部文本输入。
 - **MiniMax H3 Audio Lock**：把参考音频锁进 AV latent，成片音频 100% 保持源音频
   （对口型 / 音乐 MV 场景必备）。
@@ -159,7 +159,7 @@ git clone https://github.com/oufeixinxinren/ComfyUI-MiniMax-ContextIR.git
 多轮对话节点，支持 Skill 加载与外部多模态 API：
 
 - **Skill 加载**：直接在节点的 `skill` 下拉框选择即可生效（自动发现本插件 `skills/`
-  下的 Codex 风格 Skill，已内置官方 `h3-prompt-writing`；
+  下内置的 llama-TE Skill，共 9 个，含官方 `h3-prompt-writing`；
   `skill=auto` 时由外部 LLM 根据首个任务自动选择）。选择后 Skill 内容会注入系统提示词，
   并启用阶段式执行协议：模型按阶段推进、可请求按需加载 references、
   通过 `<mmx_skill_state>` 状态标记返回阶段/选项/final。
