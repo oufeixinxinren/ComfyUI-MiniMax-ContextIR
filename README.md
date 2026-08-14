@@ -74,6 +74,7 @@ git clone https://github.com/oufeixinxinren/ComfyUI-MiniMax-ContextIR.git
 ---
 
 ## 节点 1：MiniMax H3 Unified to Video
+<img width="351" height="664" alt="image" src="https://github.com/user-attachments/assets/d9b67219-f43b-4620-8e8d-f7641dbacd63" />
 
 本地 H3 条件构建，`mode=auto` 时按已连接输入自动判断：
 
@@ -125,6 +126,7 @@ git clone https://github.com/oufeixinxinren/ComfyUI-MiniMax-ContextIR.git
 ---
 
 ## 节点 2：MiniMax H3 Context IR
+<img width="302" height="451" alt="image" src="https://github.com/user-attachments/assets/4bb37e09-5cb9-49d8-8d16-de73679b8a55" />
 
 独立调用 H3-Context-IR API：输入普通提示词（+ 关键帧或参考媒体），返回优化后的
 结构化 H3 提示词字符串。
@@ -155,6 +157,7 @@ git clone https://github.com/oufeixinxinren/ComfyUI-MiniMax-ContextIR.git
 ---
 
 ## 节点 3：MiniMax H3 Multimodal Chat
+<img width="597" height="1104" alt="image" src="https://github.com/user-attachments/assets/0ec801ef-15e2-407e-b3af-521780a21212" />
 
 多轮对话节点，支持 Skill 加载与外部多模态 API：
 
@@ -222,6 +225,7 @@ git clone https://github.com/oufeixinxinren/ComfyUI-MiniMax-ContextIR.git
 ---
 
 ## 节点 4：MiniMax H3 Audio Lock
+<img width="327" height="181" alt="image" src="https://github.com/user-attachments/assets/c5dc34e2-8a70-4984-86b6-6bbc1cb93d7d" />
 
 H3 的 `ref_audio` 本质上只是“参考”：模型会按音色、节奏和内容**重新生成**一条音频，
 提示词写得再明确（`fully_copy` / `audio reuse` 等）也无法保证原样输出。要让成片音频
@@ -259,6 +263,7 @@ Unified/Context IR 节点
 ---
 
 ## 节点 5/6：MiniMax H3 Media Loader (Fant) + Reference Splitter
+<img width="1177" height="698" alt="image" src="https://github.com/user-attachments/assets/861f4a47-c1d4-4c3e-9a4a-3cfa05723c8f" />
 
 参考并重构自 [ComfyUI-Fantastic-MiniMaxH3-PromptBuilder](https://github.com/Adudeguyman/ComfyUI-Fantastic-MiniMaxH3-PromptBuilder)
 的媒体加载器（MIT License，Copyright (c) 2026 Adudeguyman）。节点 id 为
@@ -291,6 +296,7 @@ Unified/Context IR 节点
 ---
 
 ## 节点 7：MiniMax H3 Resolution Selector
+<img width="379" height="181" alt="image" src="https://github.com/user-attachments/assets/0978a05f-f040-47d8-a860-ac2df5ff3541" />
 
 与官方 Resolution Selector 类似，但用官方“宽×高”预设替代百万像素滑杆：
 
@@ -309,6 +315,7 @@ Unified/Context IR 节点
 ---
 
 ## 节点 8：MiniMax H3 Concat AV Latent
+<img width="464" height="135" alt="image" src="https://github.com/user-attachments/assets/78c5c939-0349-45dc-956a-deba744752bb" />
 
 参考自 ComfyUI-PT_H3ConcatAVLatent 的 `PT_H3ConcatAVLatent`，转换为插件的新 API
 注册（节点 id `MiniMaxH3ConcatAVLatent`，与原插件可共存）。该节点主要用于
