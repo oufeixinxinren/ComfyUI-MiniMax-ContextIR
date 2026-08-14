@@ -169,7 +169,7 @@ git clone https://github.com/oufeixinxinren/ComfyUI-MiniMax-ContextIR.git
 - **外部多模态 API**：任意 OpenAI 兼容的 `/chat/completions` 接口
   （`api_base` + `api_key` + `model`）。
 - **H3 媒体端口**：与 Unified 节点一致的首尾帧、参考图/视频/音频输入。
-- **@ 引用**：在消息输入框输入 `@` 弹出媒体引用菜单，选择后插入
+- **@ 引用**：节点接入素材后，对话框上方会出现可引用的媒体选项，点击后插入
   `@first_frame` / `@last_frame` / `@ref_image_N` / `@ref_video_N` /
   `@ref_video_audio_N` / `@ref_audio_N`；后端会把这些引用解析为
   `<Picture i>` / `<Video k>` / `<Audio j>` 标签并随 API 请求发送媒体内容
