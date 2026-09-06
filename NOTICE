@@ -1,0 +1,79 @@
+ComfyUI-MiniMax-ContextIR
+Copyright (C) 2026 oufeixinxinren
+
+This project is distributed as a whole under the GNU General Public License
+version 3 (GPL-3.0). See LICENSE for the full license text and LICENSES for
+per-component third-party license texts and attribution.
+
+本项目整体以 GNU 通用公共许可证第 3 版（GPL-3.0）发布。完整协议文本见 LICENSE，
+第三方组件许可与署名说明见 LICENSES。
+
+Third-party components / 第三方组件
+===================================
+
+1. ComfyUI
+   https://github.com/comfyanonymous/ComfyUI
+   License: GPL-3.0
+   The plugin uses ComfyUI's extension APIs, and h3_unified.py fuses
+   ComfyUI's official MiniMaxH3ImageToVideo / MiniMaxH3ReferenceToVideo nodes.
+   本插件使用 ComfyUI 扩展 API；h3_unified.py 融合了 ComfyUI 官方
+   MiniMaxH3ImageToVideo / MiniMaxH3ReferenceToVideo 节点。
+
+2. MiniMax H3 & official skills
+   https://github.com/MiniMax-AI/MiniMax-H3
+   License: not specified in the upstream repository; MiniMax H3 model weights
+   are governed by the MiniMax H3 Community License:
+   https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE
+   The skills/ directory contains the official MiniMax H3 skills. The
+   H3-Context-IR API client and prompt conventions follow the official
+   MiniMax H3 / H3-Context-IR documentation.
+   上游仓库未标注许可证；MiniMax H3 模型权重受 MiniMax H3 Community License
+   约束（见上方链接）。skills/ 目录存放 MiniMax H3 官方 Skills；H3-Context-IR
+   API 客户端与提示词约定遵循 MiniMax H3 / H3-Context-IR 官方文档。
+
+3. ComfyUI-Fantastic-MiniMaxH3-PromptBuilder
+   https://github.com/Adudeguyman/ComfyUI-Fantastic-MiniMaxH3-PromptBuilder
+   License: MIT - Copyright (c) 2026 Adudeguyman
+   MiniMax H3 Media Loader (Fant) and MiniMax H3 Reference Splitter are
+   ports/derivatives of this project (h3_fant_nodes.py,
+   web/fant_medialoader.js). Full MIT text: LICENSES/MIT.txt.
+   MiniMax H3 Media Loader (Fant) 与 MiniMax H3 Reference Splitter 节点由该
+   项目移植/衍生（h3_fant_nodes.py、web/fant_medialoader.js）。
+   完整 MIT 文本见 LICENSES/MIT.txt。
+
+4. ComfyUI-PT_H3ConcatAVLatent
+   https://github.com/ptmaster/ComfyUI-PT_H3ConcatAVLatent
+   License: not specified upstream
+   MiniMax H3 Concat AV Latent is a replica of PT_H3ConcatAVLatent
+   (h3_concat_av.py). The upstream repository does not include a license file.
+   MiniMax H3 Concat AV Latent 节点为 PT_H3ConcatAVLatent 的移植
+   （h3_concat_av.py）。上游仓库未提供许可证文件，请在使用前自行确认。
+
+5. comfyui-minimax-h3-audio-T8
+   https://github.com/T8mars/comfyui-minimax-h3-audio-T8
+   License: GPL-3.0-or-later
+   Development of the fused nodes referenced this project's implementation
+   of ComfyUI's native MiniMax H3 conditioning.
+   融合版节点的开发参考了该项目对 ComfyUI 原生 MiniMax H3 条件构建的实现。
+
+6. ComfyUI-MiniMax-H3-Block-based-sampler
+   https://github.com/yc/ComfyUI-MiniMax-H3-Block-based-sampler
+   License: MIT - Copyright (c) 2026 yc
+   MiniMax H3 Tiled Sampler is a port of this project's H3TiledSampler
+   (h3_tiled_sampler.py), converted to the V3 io API and adapted for this
+   plugin. The MIT license of the original applies to the ported code.
+   MiniMax H3 Tiled Sampler 节点由该项目复刻并转换为本插件的 V3 io API
+   （h3_tiled_sampler.py），原实现遵循 MIT 许可证。
+   完整 MIT 文本见 LICENSES/MIT.txt。
+
+7. ComfyUI-Prompt-Assistant
+   https://github.com/1234567890-0/ComfyUI-Prompt-Assistant
+   License: GPL-3.0
+   The Media Loader chat panel integrates with this extension's assistant
+   via its createAssistant API when installed (optional runtime dependency;
+   this plugin does not bundle or require it).
+   聊天面板在检测到该扩展时通过其 createAssistant 接口集成提示词小助手
+   （可选运行时依赖；本插件不打包也不强制要求安装该扩展）。
+
+Thanks to all upstream projects and contributors.
+感谢所有上游项目和贡献者。
