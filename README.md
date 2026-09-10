@@ -34,6 +34,8 @@ H3-Context-IR 云端 API 自动把普通提示词优化成结构化 H3 提示词
 - **MiniMax H3 Tiled Sampler**：替代 SamplerCustomAdvanced 的分块采样器；把 AV latent
   沿 H/W 轴切条逐条采样，R2V 参考条件按条同步裁切（修复拼接重复），关键帧按区域
   裁切，音轨完整透传，接缝带二次精修；
+- **MiniMax H3 Sigma Refiner**：低噪细节精修器；在低 Sigma 区间局部加步，消除高速
+  运动边缘的马赛克与像素紊乱，插在调度器和采样器之间使用；
 
 ## 特性
 
@@ -56,13 +58,19 @@ H3-Context-IR 云端 API 自动把普通提示词优化成结构化 H3 提示词
 
 ```bash
 git clone https://github.com/oufeixinxinren/ComfyUI-MiniMax-ContextIR.git
+cd ComfyUI-MiniMax-ContextIR
+pip install -r requirements.txt
 ```
 
 把克隆出的 `ComfyUI-MiniMax-ContextIR` 文件夹放进 `ComfyUI/custom_nodes/`。
 
 ### 方式二：手动复制
 
-把整个项目文件夹复制到 `ComfyUI/custom_nodes/` 即可。
+把整个项目文件夹复制到 `ComfyUI/custom_nodes/`，然后执行：
+
+```bash
+pip install -r requirements.txt
+```
 
 安装后**重启 ComfyUI**。节点分类：
 

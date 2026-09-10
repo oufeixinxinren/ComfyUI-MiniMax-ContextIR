@@ -8,6 +8,7 @@ from .h3_fant_nodes import MiniMaxH3MediaLoaderFantastic, MiniMaxH3ReferenceSpli
 from .h3_resolution import MiniMaxH3ResolutionSelector
 from .h3_tiled_sampler import H3TiledSampler as MiniMaxH3TiledSampler
 from .h3_unified import MiniMaxH3UnifiedToVideo
+from .h3_sigma_refiner import H3SigmaRefiner as MiniMaxH3SigmaRefiner
 
 
 WEB_DIRECTORY = "./web"
@@ -31,6 +32,7 @@ class MiniMaxH3Extension(ComfyExtension):
             MiniMaxH3ReferenceSplitter,
             MiniMaxH3ResolutionSelector,
             MiniMaxH3TiledSampler,
+            MiniMaxH3SigmaRefiner,
         ]
 
 
@@ -48,6 +50,7 @@ __all__ = [
     "MiniMaxH3ReferenceSplitter",
     "MiniMaxH3TiledSampler",
     "MiniMaxH3ResolutionSelector",
+    "MiniMaxH3SigmaRefiner",
     "MiniMaxH3Extension",
     "comfy_entrypoint",
     "WEB_DIRECTORY",
