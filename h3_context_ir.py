@@ -151,24 +151,31 @@ def _frames_to_mp4_bytes(frames: torch.Tensor, fps: int = 24) -> bytes:
         tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
         tmp.close()
         try:
-            subprocess.run(
-                [
-                    ffmpeg,
-                    "-v", "error",
-                    "-f", "rawvideo",
-                    "-pix_fmt", "rgb24",
-                    "-s", f"{w}x{h}",
-                    "-r", str(fps),
-                    "-i", "-",
-                    "-an",
-                    "-c:v", "libx264",
-                    "-pix_fmt", "yuv420p",
-                    "-movflags", "+faststart",
-                    tmp.name,
-                ],
-                input=rgb.tobytes(),
-                check=True,
-            )
+            try:
+                subprocess.run(
+                    [
+                        ffmpeg,
+                        "-v", "error",
+                        "-f", "rawvideo",
+                        "-pix_fmt", "rgb24",
+                        "-s", f"{w}x{h}",
+                        "-r", str(fps),
+                        "-i", "-",
+                        "-an",
+                        "-c:v", "libx264",
+                        "-pix_fmt", "yuv420p",
+                        "-movflags", "+faststart",
+                        tmp.name,
+                    ],
+                    input=rgb.tobytes(),
+                    capture_output=True,
+                    check=True,
+                )
+            except subprocess.CalledProcessError as exc:
+                stderr = (exc.stderr or b"").decode("utf-8", errors="replace").strip()
+                raise ValueError(
+                    f"ffmpeg video encoding failed: {stderr or 'unknown error'}"
+                ) from exc
             with open(tmp.name, "rb") as fh:
                 return fh.read()
         finally:
