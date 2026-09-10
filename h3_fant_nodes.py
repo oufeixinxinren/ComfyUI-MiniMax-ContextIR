@@ -14,6 +14,10 @@ original panel (drag-drop, previews, presets, clip budgets).
 
 import json
 
+import torch
+import torch.nn.functional as F
+
+import comfy.utils
 from comfy_api.latest import ComfyExtension, io
 
 from . import h3_media_io as media_io
@@ -226,6 +230,23 @@ class MiniMaxH3ReferenceSplitter(io.ComfyNode):
                     max=3600.0,
                     tooltip="Duration of the video to generate (seconds).",
                 ),
+                io.Int.Input(
+                    "short_edge_max",
+                    default=0,
+                    min=0,
+                    max=8192,
+                    step=8,
+                    tooltip="Short edge max pixels; 0 = no scaling. "
+                            "Pictures are downscaled so their short edge fits, then aligned.",
+                ),
+                io.Int.Input(
+                    "align_to",
+                    default=16,
+                    min=1,
+                    max=128,
+                    step=1,
+                    tooltip="Pixel alignment for scaled dimensions.",
+                ),
             ],
             outputs=(
                 [io.MatchType.Output(SLOT_TEMPLATE, display_name=f"picture_{i}")
@@ -247,7 +268,8 @@ class MiniMaxH3ReferenceSplitter(io.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, references=None, aspect_ratio=None, duration: float = 5.0) -> io.NodeOutput:
+    def execute(cls, references=None, aspect_ratio=None, duration: float = 5.0,
+                short_edge_max: int = 0, align_to: int = 16) -> io.NodeOutput:
         bundle = references or {}
         # positional padding like the original Fant splitter: empty slots stay
         # None so downstream nodes can tell unused slots apart
@@ -261,6 +283,28 @@ class MiniMaxH3ReferenceSplitter(io.ComfyNode):
         aud_t = _pad(bundle.get("audios"), SPLIT_AUDIOS)
         str_t = _pad([s if isinstance(s, str) else "" for s in bundle.get("strings") or []],
                      SPLIT_STRINGS)
+
+        # global image scaling: downscale pictures so short edge <= short_edge_max,
+        # both dimensions aligned to align_to; only downscales (never upscales)
+        if short_edge_max > 0:
+            scaled = []
+            for img in pic_t:
+                if img is None:
+                    scaled.append(None)
+                    continue
+                _, h, w, _ = img.shape
+                short = min(h, w)
+                if short <= short_edge_max:
+                    scaled.append(img)
+                    continue
+                scale = short_edge_max / short
+                new_h = max(align_to, round(h * scale / align_to) * align_to)
+                new_w = max(align_to, round(w * scale / align_to) * align_to)
+                t = img[..., :3].permute(0, 3, 1, 2).float()
+                t = F.interpolate(t, size=(new_h, new_w), mode="bilinear", align_corners=False)
+                scaled.append(t.permute(0, 2, 3, 1).contiguous().to(img.dtype))
+            pic_t = scaled
+
         ratio_label = (aspect_ratio or {}).get("aspect_ratio") or ""
         ratio = ratio_label.split(" ")[0]
         if ratio not in RATIOS:

@@ -548,7 +548,7 @@ const CSS = `
 
 .mml-pics{flex:1;min-height:0;display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:5px;overflow-y:auto;align-content:start;}
+  gap:8px;overflow-y:auto;align-content:start;}
 .mml-pics .mml-slot{aspect-ratio:1/1;}
 .mml-vids{flex:1;min-height:0;display:grid;grid-auto-rows:minmax(56px,auto);gap:5px;
   grid-template-columns:minmax(0,1fr);overflow-y:auto;}
@@ -615,8 +615,8 @@ const CSS = `
 .mml-pic{position:absolute;inset:0;width:100%;height:100%;max-width:100%;
   max-height:100%;object-fit:cover;
   display:block;cursor:zoom-in;background:#0d1015;}
-.mml-picbar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;
-  gap:4px;padding:1px 4px;background:rgba(10,12,16,.82);min-width:0;overflow:hidden;}
+.mml-picbar{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;align-items:center;
+  gap:4px;padding:1px 4px;background:rgba(10,12,16,.92);min-width:0;overflow:hidden;}
 .mml-tag{font-family:ui-monospace,monospace;font-size:9px;white-space:nowrap;}
 .mml-tag.pic{color:#e0a94c;} .mml-tag.vid{color:#4cc3e0;} .mml-tag.aud{color:#b48ce8;}
 .mml-x{cursor:pointer;color:#7a8393;font-size:11px;line-height:1;}

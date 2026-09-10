@@ -25,6 +25,8 @@ H3-Context-IR 云端 API 自动把普通提示词优化成结构化 H3 提示词
   输出 `references` 素材包。
 - **Reference Splitter**：把 `references` 素材包拆成固定的 9 图 / 3 视频 /
   3 视频音轨 / 3 音频 / 3 提示词字符串槽位（空槽位为 None）。
+  内置 `short_edge_max` / `align_to` 两个 INT 输入用于全局图片缩放
+  （短边 ≤ short_edge_max，尺寸对齐到 align_to 的倍数）。
 - **MiniMax H3 Resolution Selector**：宽高比 + 官方“宽×高”预设 → H3 宽高；
   切换比例时“宽×高”选项自动跟随（原生 DynamicCombo）。
 - **MiniMax H3 Concat AV Latent**：把独立的视频/音频 latent 合并成 H3 采样器所需的

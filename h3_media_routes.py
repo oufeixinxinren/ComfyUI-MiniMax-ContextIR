@@ -237,7 +237,9 @@ if PromptServer is not None and web is not None and getattr(PromptServer, "insta
         kept, missing = [], []
         for item in items:
             target = item.get("file") if isinstance(item, dict) else None
-            if target and os.path.exists(_resolve_annotated(target)):
+            if isinstance(item, dict) and item.get("kind") == "string":
+                kept.append(item)  # text items have no file dependency
+            elif target and os.path.exists(_resolve_annotated(target)):
                 kept.append(item)
             elif target:
                 missing.append(item.get("name") or target)
