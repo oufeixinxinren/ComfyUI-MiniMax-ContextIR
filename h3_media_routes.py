@@ -96,21 +96,8 @@ def _resolve_annotated(annotated: str) -> str:
 
 def _probe(path: str) -> dict:
     """Duration / audio / dimensions. Never raises."""
-    info = {"duration": None, "has_audio": False, "width": None, "height": None}
-    try:
-        import av
-
-        with av.open(path) as container:
-            if container.duration:
-                info["duration"] = round(container.duration / 1_000_000, 3)
-            info["has_audio"] = bool(container.streams.audio)
-            if container.streams.video:
-                stream = container.streams.video[0]
-                info["width"] = getattr(stream, "width", None)
-                info["height"] = getattr(stream, "height", None)
-    except Exception:  # noqa: BLE001
-        pass
-    return info
+    # media_io.probe supports both PyAV and a system ffmpeg/ffprobe backend.
+    return media_io.probe(path)
 
 
 if PromptServer is not None and web is not None and getattr(PromptServer, "instance", None) is not None:

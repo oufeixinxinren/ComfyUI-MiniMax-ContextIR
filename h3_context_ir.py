@@ -16,6 +16,8 @@ import json
 import math
 import mimetypes
 import os
+import shutil
+import subprocess
 import tempfile
 import time
 import wave as wave_module
@@ -81,7 +83,8 @@ def _audio_to_data_url(audio: dict) -> str:
 def _frames_to_mp4_bytes(frames: torch.Tensor, fps: int = 24) -> bytes:
     """Encode an IMAGE batch of frames to an mp4 in memory.
 
-    Tries PyAV, OpenCV, then imageio-ffmpeg; raises if none is available.
+    Tries PyAV, OpenCV, imageio-ffmpeg, then a system ffmpeg executable;
+    raises if none is available.
     """
     imgs = frames.detach().cpu().float()
     if imgs.ndim == 3:
@@ -143,8 +146,37 @@ def _frames_to_mp4_bytes(frames: torch.Tensor, fps: int = 24) -> bytes:
     except Exception:  # noqa: BLE001 - all encoders failed
         pass
 
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg:
+        tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+        tmp.close()
+        try:
+            subprocess.run(
+                [
+                    ffmpeg,
+                    "-v", "error",
+                    "-f", "rawvideo",
+                    "-pix_fmt", "rgb24",
+                    "-s", f"{w}x{h}",
+                    "-r", str(fps),
+                    "-i", "-",
+                    "-an",
+                    "-c:v", "libx264",
+                    "-pix_fmt", "yuv420p",
+                    "-movflags", "+faststart",
+                    tmp.name,
+                ],
+                input=rgb.tobytes(),
+                check=True,
+            )
+            with open(tmp.name, "rb") as fh:
+                return fh.read()
+        finally:
+            if os.path.exists(tmp.name):
+                os.unlink(tmp.name)
+
     raise ValueError(
-        "No video encoder found (av / cv2 / imageio-ffmpeg). Reference videos cannot be sent."
+        "No video encoder found (av / cv2 / imageio-ffmpeg / ffmpeg). Reference videos cannot be sent."
     )
 
 

@@ -1,5 +1,8 @@
-# ComfyUI 通常已经提供：numpy / Pillow / aiohttp / torch / torchvision / torchaudio
+# PyAV bundles FFmpeg libraries and is the preferred media backend.
 av>=12.0.0
-opencv-python-headless>=4.8.0
-imageio>=2.31.0
-imageio-ffmpeg>=0.4.9
+
+# Optional fallbacks only: OpenCV / imageio encoders, useful if PyAV is missing
+# or broken. A system FFmpeg on PATH can also replace these fallbacks.
+# opencv-python-headless>=4.8.0
+# imageio>=2.31.0
+# imageio-ffmpeg>=0.4.9

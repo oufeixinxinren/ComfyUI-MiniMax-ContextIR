@@ -51,6 +51,8 @@ H3-Context-IR 云端 API 自动把普通提示词优化成结构化 H3 提示词
 - ComfyUI ≥ 0.31（新式 `ComfyExtension`；不支持旧式 `NODE_CLASS_MAPPINGS` 注册方式）
 - MiniMax H3 官方模型：UNET + Qwen3-VL CLIP + 视频 VAE + 音频 VAE
 - Python 3.10+；媒体加载器需要 PyAV 或 ffmpeg 之一（音频解码可回退 ComfyUI LoadAudio）
+- `requirements.txt` 默认只安装 PyAV；`opencv-python-headless`、`imageio` 和
+  `imageio-ffmpeg` 都是可选回退依赖，使用 PyAV 或系统 ffmpeg 时无需安装。
 
 ## 安装
 
