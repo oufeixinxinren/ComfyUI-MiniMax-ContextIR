@@ -83,6 +83,7 @@ const LANG_PAIRS = [
   ["prompts", "提示词"],
   ["prompt text…", "提示词文本…"],
   ["Add a prompt string", "添加提示词字符串"],
+  ["Drag to reorder prompt", "拖动调整提示词顺序"],
   ["AUDIO", "音频"],
   ["picture", "图片"],
   ["video", "视频"],
@@ -560,12 +561,18 @@ const CSS = `
 .mml-strrow{display:flex;align-items:center;gap:5px;background:#141820;
   border:1px solid #2b313d;border-radius:6px;padding:0 6px;min-width:0;min-height:0;}
 .mml-strrow:hover{border-color:#59637a;}
+.mml-strrow:not(.add){cursor:grab;}
+.mml-strrow.dragging{opacity:.35;}
+.mml-strrow.over{outline:1px solid #6f86b8;outline-offset:1px;}
 .mml-strrow.off{opacity:.42;}
 .mml-strrow.off:hover{opacity:.7;}
 .mml-strrow.add{justify-content:center;color:#4d5563;cursor:pointer;font-size:13px;}
 .mml-strrow.add:hover{border-color:#59637a;color:#8a93a3;}
 .mml-strinput{flex:1;min-width:0;background:none;border:0;color:#dfe4ec;
   font:11px system-ui,sans-serif;outline:none;padding:2px 0;}
+.mml-strdrag{cursor:grab;color:#4d5563;font-size:11px;line-height:1;
+  flex-shrink:0;user-select:none;padding:0 1px;}
+.mml-strdrag:hover{color:#a8b4c8;}
 .mml-pes-overlay{position:fixed;inset:0;z-index:9000;background:rgba(8,10,14,.55);
   display:flex;align-items:center;justify-content:center;}
 .mml-pes-modal{width:min(680px,92vw);height:min(560px,90vh);background:#141820;
@@ -2191,6 +2198,39 @@ class LoaderPanel {
     return node;
   }
 
+  reorderableString(node, item) {
+    node.draggable = true;
+    // String rows use their own drag type so a prompt can never be swapped
+    // with a picture/video/audio tile. Inputs remain editable; the row,
+    // tag and grip provide the drag affordance.
+    const dragType = "application/x-minimax-h3-string";
+    node.querySelectorAll("input, textarea").forEach((control) => {
+      control.setAttribute("draggable", "false");
+      control.addEventListener("dragstart", (e) => e.preventDefault());
+    });
+    node.addEventListener("dragstart", (e) => {
+      e.stopPropagation();
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData(dragType, String(this.items.indexOf(item)));
+      node.classList.add("dragging");
+    });
+    node.addEventListener("dragend", () => node.classList.remove("dragging"));
+    node.addEventListener("dragover", (e) => {
+      if (!e.dataTransfer.types.includes(dragType)) return;
+      e.preventDefault(); e.stopPropagation();
+      node.classList.add("over");
+    });
+    node.addEventListener("dragleave", () => node.classList.remove("over"));
+    node.addEventListener("drop", (e) => {
+      if (!e.dataTransfer.types.includes(dragType)) return;
+      e.preventDefault(); e.stopPropagation();
+      node.classList.remove("over");
+      const from = parseInt(e.dataTransfer.getData(dragType), 10);
+      if (!isNaN(from)) this.swap(from, this.items.indexOf(item));
+    });
+    return node;
+  }
+
   wireDrop(slot) {
     slot.addEventListener("dragover", (e) => {
       if (!e.dataTransfer?.types?.includes("Files")) return;
@@ -2410,13 +2450,15 @@ class LoaderPanel {
       });
       return el("div", { class: "mml-strrow" + (isOn(it) ? "" : " off") },
         this.powerBtn(it),
+        el("span", { class: "mml-strdrag",
+          title: "Drag to reorder prompt" }, "\u2630"),
         el("span", { class: "mml-tag str" }, (tags.get(it) || "").slice(1, -1)),
         input,
         el("span", { class: "mml-trimbtn", title: tr("Open the prompt editor"),
           onclick: () => this.editPrompt(it) }, "\u2702"),
         el("span", { class: "mml-x", title: "Remove",
           onclick: () => this.remove(it) }, "\u2715"));
-    });
+    }).map((row, i) => this.reorderableString(row, strings[i]));
     if (strings.length < MAX.strings)
       strRows.push(el("div", { class: "mml-strrow add",
         title: "Add a prompt string",
