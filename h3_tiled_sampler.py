@@ -237,7 +237,6 @@ def _crop_minimax_refs_in_extra_args(extra_args, tile_axis, ax_start, ax_end):
 
 class H3TiledSampler(io.ComfyNode):
     @classmethod
-    @classmethod
     def define_schema(cls):
         return io.Schema(
             node_id="MiniMaxH3TiledSampler",
@@ -296,7 +295,7 @@ class H3TiledSampler(io.ComfyNode):
         axis_size = H if tile_axis == "H" else W
 
         if axis_size <= max_size_for_no_tile or n_tiles <= 1:
-            return cls._single_pass(noise, guider, sampler, sigmas, latent, video_tensor, audio_tensor, fmt_info, debug)
+            return io.NodeOutput(*cls._single_pass(noise, guider, sampler, sigmas, latent, video_tensor, audio_tensor, fmt_info, debug))
 
         starts, tile_size = _compute_tile_starts(axis_size, n_tiles, tile_overlap)
         device = comfy.model_management.get_torch_device()
@@ -424,7 +423,7 @@ class H3TiledSampler(io.ComfyNode):
         out_denoised_dict = latent.copy()
         out_denoised_dict["samples"] = denoised_reconstructed
 
-        return (out_dict, out_denoised_dict)
+        return io.NodeOutput(out_dict, out_denoised_dict)
 
     @staticmethod
     def _can_use_synchronized_euler(sampler, keyframe_contexts):
@@ -601,7 +600,7 @@ class H3TiledSampler(io.ComfyNode):
         del weights, regions
         if video_tensor.device.type == "cuda":
             torch.cuda.empty_cache()
-        return io.NodeOutput(out, out_denoised)
+        return (out, out_denoised)
 
     @staticmethod
     def _apply_minimax_refs_region(guider, tile_axis, start, end, debug=False):
@@ -800,12 +799,3 @@ class H3TiledSampler(io.ComfyNode):
         out = latent_dict.copy()
         out["samples"] = samples
         return (out, out)
-
-
-NODE_CLASS_MAPPINGS = {
-    "H3TiledSampler": H3TiledSampler,
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "H3TiledSampler": "H3 高清分块采样器（音画/关键帧/R2V修复版）",
-}
