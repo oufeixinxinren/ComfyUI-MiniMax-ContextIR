@@ -554,9 +554,9 @@ const CSS = `
 .mml-vids{flex:1;min-height:0;display:grid;grid-auto-rows:minmax(56px,auto);gap:5px;
   grid-template-columns:minmax(0,1fr);overflow-y:auto;}
 .mml-spacer{flex:0 0 auto;min-height:0;}
-.mml-auds{flex:0 0 auto;display:grid;grid-auto-rows:38px;gap:5px;max-height:124px;
+.mml-auds{flex:1 1 124px;min-height:124px;display:grid;grid-auto-rows:38px;gap:5px;
   grid-template-columns:minmax(0,1fr);overflow-y:auto;}
-.mml-strs{flex:0 0 auto;display:grid;grid-auto-rows:38px;gap:5px;max-height:124px;
+.mml-strs{flex:1 1 124px;min-height:124px;display:grid;grid-auto-rows:38px;gap:5px;
   grid-template-columns:minmax(0,1fr);overflow-y:auto;}
 .mml-strrow{display:flex;align-items:center;gap:5px;background:#141820;
   border:1px solid #2b313d;border-radius:6px;padding:0 6px;min-width:0;min-height:0;}
