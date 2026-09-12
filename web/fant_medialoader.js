@@ -491,15 +491,16 @@ export function safeCanvasFocus(node) {
 
 /* ------------------------------------------------------------------ css */
 
-export const PANEL_H = 476;
+export const PANEL_H = 620;
 export const NODE_W = 660;
 
 const CSS = `
 .mml-panel{font-family:system-ui,sans-serif;color:#d7dbe2;font-size:12px;
   background:#191c22;border:1px solid #2a2f3a;border-radius:8px;padding:8px;
   display:flex;flex-direction:column;gap:6px;box-sizing:border-box;
-  width:100%;height:100%;min-height:476px;overflow:hidden;}
-.mml-cols{flex:1;min-height:132px;display:grid;grid-template-columns:1fr 1fr;
+  width:100%;height:100%;min-height:620px;overflow:hidden;}
+.mml-cols{flex:1;min-height:calc(var(--mml-3row, 316px) + 164px);
+  display:grid;grid-template-columns:1fr 1fr;
   gap:9px;overflow:hidden;}
 .mml-col{display:flex;flex-direction:column;gap:5px;min-width:0;overflow:hidden;}
 .mml-modal .mml-panel{border:0;height:100%;min-height:0;}
@@ -547,11 +548,13 @@ const CSS = `
 .mml-sec span{margin-left:auto;text-transform:none;letter-spacing:0;color:#5c6472;
   font-family:ui-monospace,monospace;}
 
-.mml-pics{flex:1;min-height:0;display:grid;
+.mml-pics{flex:1;min-height:var(--mml-3row, 316px);display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-auto-rows:var(--mml-cell, 100px);
   gap:8px;overflow-y:auto;align-content:start;}
 .mml-pics .mml-slot{aspect-ratio:1/1;}
-.mml-vids{flex:1;min-height:0;display:grid;grid-auto-rows:var(--mml-cell, 56px);gap:5px;
+.mml-vids{flex:1;min-height:var(--mml-3row, 316px);display:grid;
+  grid-auto-rows:var(--mml-cell, 100px);gap:8px;
   grid-template-columns:minmax(0,1fr);overflow-y:auto;}
 .mml-spacer{flex:0 0 auto;min-height:0;}
 .mml-auds{flex:1 1 124px;min-height:124px;max-height:382px;display:grid;
@@ -2208,10 +2211,21 @@ class LoaderPanel {
   }
 
   syncCellHeight() {
-    const pic = this.root.querySelector(".mml-pics .mml-slot");
-    if (!pic) return;
-    const height = Math.max(1, Math.round(pic.getBoundingClientRect().height));
-    this.root.style.setProperty("--mml-cell", `${height}px`);
+    const area = this.root.querySelector(".mml-pics");
+    if (!area) return;
+    const slot = area.querySelector(".mml-slot");
+    const slotWidth = slot ? slot.getBoundingClientRect().width : 0;
+    // Picture cells are 1:1 and sized from the available width. Use the
+    // measured column width (falling back to the grid maths) so height changes
+    // can never feed back into the cell size.
+    const width = slotWidth || (area.clientWidth - 16) / 3;
+    if (!width) return;
+    const cell = Math.max(32, Math.round(width));
+    if (this._cellPx === cell) return;
+    this._cellPx = cell;
+    this.root.style.setProperty("--mml-cell", `${cell}px`);
+    // Three complete rows, including the two 8px gaps.
+    this.root.style.setProperty("--mml-3row", `${cell * 3 + 16}px`);
   }
 
   reorderableString(node, item) {
