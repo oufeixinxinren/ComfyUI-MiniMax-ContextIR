@@ -551,12 +551,14 @@ const CSS = `
   grid-template-columns:repeat(3,minmax(0,1fr));
   gap:8px;overflow-y:auto;align-content:start;}
 .mml-pics .mml-slot{aspect-ratio:1/1;}
-.mml-vids{flex:1;min-height:0;display:grid;grid-auto-rows:minmax(56px,auto);gap:5px;
+.mml-vids{flex:1;min-height:0;display:grid;grid-auto-rows:var(--mml-cell, 56px);gap:5px;
   grid-template-columns:minmax(0,1fr);overflow-y:auto;}
 .mml-spacer{flex:0 0 auto;min-height:0;}
-.mml-auds{flex:1 1 124px;min-height:124px;display:grid;grid-auto-rows:38px;gap:5px;
+.mml-auds{flex:1 1 124px;min-height:124px;max-height:382px;display:grid;
+  grid-auto-rows:38px;gap:5px;
   grid-template-columns:minmax(0,1fr);overflow-y:auto;}
-.mml-strs{flex:1 1 124px;min-height:124px;display:grid;grid-auto-rows:38px;gap:5px;
+.mml-strs{flex:1 1 124px;min-height:124px;max-height:382px;display:grid;
+  grid-auto-rows:38px;gap:5px;
   grid-template-columns:minmax(0,1fr);overflow-y:auto;}
 .mml-strrow{display:flex;align-items:center;gap:5px;background:#141820;
   border:1px solid #2b313d;border-radius:6px;padding:0 6px;min-width:0;min-height:0;}
@@ -1869,6 +1871,13 @@ class LoaderPanel {
     });
     this.root.append(this.picker);
     this._langObserver = observeLanguage(this.root);
+    // Videos use the same row height as the 1:1 picture grid. The picture
+    // size depends only on panel width, so observe the panel and expose it
+    // as a CSS variable; stretching height changes scroll length, not size.
+    if (typeof ResizeObserver !== "undefined") {
+      this._cellObserver = new ResizeObserver(() => this.syncCellHeight());
+      this._cellObserver.observe(this.root);
+    }
 
     this.root.addEventListener("dragover", (e) => {
       if (!e.dataTransfer?.types?.includes("Files")) return;
@@ -2196,6 +2205,13 @@ class LoaderPanel {
       if (!isNaN(from)) this.swap(from, this.items.indexOf(item));
     });
     return node;
+  }
+
+  syncCellHeight() {
+    const pic = this.root.querySelector(".mml-pics .mml-slot");
+    if (!pic) return;
+    const height = Math.max(1, Math.round(pic.getBoundingClientRect().height));
+    this.root.style.setProperty("--mml-cell", `${height}px`);
   }
 
   reorderableString(node, item) {
@@ -2593,6 +2609,7 @@ class LoaderPanel {
 
     this.root.replaceChildren(...kids.filter(Boolean));
     localizeDom(this.root);
+    this.syncCellHeight();
     for (const [cls, top, left] of scrolled) {
       const area = this.root.querySelector(`.${cls}`);
       if (area) {
