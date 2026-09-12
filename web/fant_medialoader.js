@@ -552,10 +552,12 @@ const CSS = `
   grid-template-columns:repeat(3,minmax(0,1fr));
   grid-auto-rows:var(--mml-cell, 100px);
   gap:8px;overflow-y:auto;align-content:start;}
-.mml-pics .mml-slot{aspect-ratio:1/1;}
+.mml-pics .mml-slot{width:100%;height:100%;}
 .mml-vids{flex:1;min-height:var(--mml-3row, 316px);display:grid;
   grid-auto-rows:var(--mml-cell, 100px);gap:8px;
   grid-template-columns:minmax(0,1fr);overflow-y:auto;}
+.mml-vids .mml-slot.more{width:var(--mml-cell, 100px);height:var(--mml-cell, 100px);
+  justify-self:start;align-self:start;}
 .mml-spacer{flex:0 0 auto;min-height:0;}
 .mml-auds{flex:1 1 124px;min-height:124px;max-height:382px;display:grid;
   grid-auto-rows:38px;gap:5px;
@@ -2846,6 +2848,7 @@ app.registerExtension({
         const minPanel = this._mmlPanel?.panelMinHeight?.() || PANEL_H;
         size[0] = Math.max(NODE_W, size[0]);
         size[1] = Math.max(min[1], minPanel + 34, size[1]);
+        requestAnimationFrame(() => this._mmlPanel?.syncCellHeight?.());
       } catch (e) { /* leave the size alone */ }
       return onResize?.apply(this, arguments);
     };
