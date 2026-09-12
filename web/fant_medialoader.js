@@ -556,8 +556,6 @@ const CSS = `
 .mml-vids{flex:1;min-height:var(--mml-3row, 316px);display:grid;
   grid-auto-rows:var(--mml-cell, 100px);gap:8px;
   grid-template-columns:minmax(0,1fr);overflow-y:auto;}
-.mml-vids .mml-slot.more{width:var(--mml-cell, 100px);height:var(--mml-cell, 100px);
-  justify-self:start;align-self:start;}
 .mml-spacer{flex:0 0 auto;min-height:0;}
 .mml-auds{flex:1 1 124px;min-height:124px;max-height:382px;display:grid;
   grid-auto-rows:38px;gap:5px;
@@ -2215,19 +2213,18 @@ class LoaderPanel {
   syncCellHeight() {
     const area = this.root.querySelector(".mml-pics");
     if (!area) return;
-    const slot = area.querySelector(".mml-slot");
-    const slotWidth = slot ? slot.getBoundingClientRect().width : 0;
-    // Picture cells are 1:1 and sized from the available width. Use the
-    // measured column width (falling back to the grid maths) so height changes
-    // can never feed back into the cell size.
-    const width = slotWidth || (area.clientWidth - 16) / 3;
+    // Picture cells are square: the row height is derived from the three-column
+    // width (two 8px gaps), so height changes can never deform them.
+    const width = area.clientWidth;
     if (!width) return;
-    const cell = Math.max(32, Math.round(width));
-    if (this._cellPx === cell) return;
+    const cell = Math.max(32, (width - 16) / 3);
+    const key = Math.round(cell * 1000);
+    if (this._cellKey === key) return;
+    this._cellKey = key;
     this._cellPx = cell;
-    this.root.style.setProperty("--mml-cell", `${cell}px`);
+    this.root.style.setProperty("--mml-cell", `${cell.toFixed(3)}px`);
     // Three complete rows, including the two 8px gaps.
-    this.root.style.setProperty("--mml-3row", `${cell * 3 + 16}px`);
+    this.root.style.setProperty("--mml-3row", `${(cell * 3 + 16).toFixed(3)}px`);
     const minHeight = this.panelMinHeight() + 34;
     const nodeSize = this.node?.size;
     if (Array.isArray(nodeSize) && nodeSize[1] < minHeight) {
