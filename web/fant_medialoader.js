@@ -2226,6 +2226,17 @@ class LoaderPanel {
     this.root.style.setProperty("--mml-cell", `${cell}px`);
     // Three complete rows, including the two 8px gaps.
     this.root.style.setProperty("--mml-3row", `${cell * 3 + 16}px`);
+    const minHeight = this.panelMinHeight() + 34;
+    const nodeSize = this.node?.size;
+    if (Array.isArray(nodeSize) && nodeSize[1] < minHeight) {
+      try { this.node.setSize?.([nodeSize[0], minHeight]); } catch (e) { /* Vue owns layout */ }
+    }
+  }
+
+  panelMinHeight() {
+    // Three rows of pictures/videos + three rows of prompts/audio + the
+    // fixed chrome around the columns (toolbar, preset row, message, order).
+    return Math.ceil((this._cellPx || 100) * 3 + 324);
   }
 
   reorderableString(node, item) {
@@ -2806,20 +2817,24 @@ app.registerExtension({
 
       this._mmlPanel = new LoaderPanel(this);
       const widget = this.addDOMWidget("mml_panel", "div", this._mmlPanel.root, {
-        getMinHeight: () => PANEL_H,
+        getMinHeight: () => this._mmlPanel?.panelMinHeight?.() || PANEL_H,
         getMaxHeight: () => undefined,
-        getHeight: () => Math.max(PANEL_H, (this.size?.[1] || PANEL_H + 40) - 34),
+        getHeight: () => Math.max(
+          this._mmlPanel?.panelMinHeight?.() || PANEL_H,
+          (this.size?.[1] || PANEL_H + 40) - 34),
         hideOnZoom: false,
         serialize: false,
       });
       widget.computeLayoutSize = () => ({
-        minHeight: PANEL_H,
+        minHeight: this._mmlPanel?.panelMinHeight?.() || PANEL_H,
         minWidth: NODE_W,
         maxHeight: 100000,
         maxWidth: 100000,
       });
       this.size[0] = Math.max(NODE_W, this.size[0] || 0);
-      this.size[1] = Math.max(PANEL_H + 34, this.size[1] || 0);
+      this.size[1] = Math.max(
+        (this._mmlPanel?.panelMinHeight?.() || PANEL_H) + 34,
+        this.size[1] || 0);
       return r;
     };
 
@@ -2828,8 +2843,9 @@ app.registerExtension({
     nodeType.prototype.onResize = function (size) {
       try {
         const min = this.computeSize();
+        const minPanel = this._mmlPanel?.panelMinHeight?.() || PANEL_H;
         size[0] = Math.max(NODE_W, size[0]);
-        size[1] = Math.max(min[1], PANEL_H + 34, size[1]);
+        size[1] = Math.max(min[1], minPanel + 34, size[1]);
       } catch (e) { /* leave the size alone */ }
       return onResize?.apply(this, arguments);
     };
@@ -2843,7 +2859,8 @@ app.registerExtension({
           this._mmlPanel.render();
         }
         this.size[0] = Math.max(NODE_W, this.size[0] || 0);
-        this.size[1] = Math.max(PANEL_H + 34, this.size[1] || 0);
+        const minPanel = this._mmlPanel?.panelMinHeight?.() || PANEL_H;
+        this.size[1] = Math.max(minPanel + 34, this.size[1] || 0);
       }, 0);
       return r;
     };
