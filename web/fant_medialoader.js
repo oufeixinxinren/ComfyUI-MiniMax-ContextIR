@@ -2261,6 +2261,14 @@ class LoaderPanel {
   render() {
     this.players.forEach((p) => p.stop());
     this.players = [];
+    // Full re-render rebuilds scrollable lists. Keep the user anchored where
+    // they were (notably prompt rows) instead of jumping back to the top.
+    const scrolled = ["mml-pics", "mml-vids", "mml-auds", "mml-strs"]
+      .map((cls) => {
+        const area = this.root.querySelector(`.${cls}`);
+        return area ? [cls, area.scrollTop, area.scrollLeft] : null;
+      })
+      .filter(Boolean);
 
     const { tags, extra } = computeTags(this.items);
     const total = fileCount(this.items);
@@ -2585,6 +2593,13 @@ class LoaderPanel {
 
     this.root.replaceChildren(...kids.filter(Boolean));
     localizeDom(this.root);
+    for (const [cls, top, left] of scrolled) {
+      const area = this.root.querySelector(`.${cls}`);
+      if (area) {
+        area.scrollTop = top;
+        area.scrollLeft = left;
+      }
+    }
   }
 }
 
